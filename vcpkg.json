@@ -1,0 +1,9 @@
+{
+    "name": "arrow-benchmarks",
+    "version-string": "0.1.0",
+    "dependencies": [
+      "arrow",
+      "parquet",
+      "snappy"
+    ]
+}
