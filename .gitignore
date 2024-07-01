@@ -34,3 +34,5 @@
 build/
 vcpkg*/
 arrow_benchmarks
+*.txt
+*.parquet

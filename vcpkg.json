@@ -1,9 +1,15 @@
 {
-    "name": "arrow-benchmarks",
-    "version-string": "0.1.0",
-    "dependencies": [
+  "name": "arrow-benchmarks",
+  "version-string": "0.1.0",
+  "dependencies": [
       "arrow",
       "parquet",
-      "snappy"
-    ]
+      "snappy",
+      "openssl",
+      "zlib",
+      "brotli",
+      "lz4",
+      "zstd",
+      "thrift"
+  ]
 }
