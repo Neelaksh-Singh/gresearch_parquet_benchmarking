@@ -12,17 +12,17 @@ arrow::Status WriteParquetFile(int num_columns, int num_rows, const std::string&
 
     // Create schema and data for each column
     for (int i = 0; i < num_columns; ++i) {
-        schema_vector.push_back(arrow::field("col_" + std::to_string(i), arrow::float64()));
-        
-        arrow::DoubleBuilder builder(pool);
+        schema_vector.push_back(arrow::field("col_" + std::to_string(i), arrow::float32()));
+
+        arrow::FloatBuilder builder(pool);
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<> dis(-1000.0, 1000.0);
-        
+        std::uniform_real_distribution<> dis(-1000.0f, 1000.0f);
+
         for (int j = 0; j < num_rows; ++j) {
-            ARROW_RETURN_NOT_OK(builder.Append(dis(gen)));
+            ARROW_RETURN_NOT_OK(builder.Append(static_cast<float>(dis(gen))));
         }
-        
+
         std::shared_ptr<arrow::Array> array;
         ARROW_RETURN_NOT_OK(builder.Finish(&array));
         arrays.push_back(array);
@@ -45,11 +45,11 @@ arrow::Status WriteParquetFile(int num_columns, int num_rows, const std::string&
 }
 
 int main() {
-    std::vector<int> column_counts = {10, 100, 1000, 10000, 100000};
+    std::vector<int> column_counts = {10, 100, 1000, 10000};
     int num_rows = 10000;  // Adjust as needed
 
     for (int num_columns : column_counts) {
-        std::string filename = "benchmark_" + std::to_string(num_columns) + "cols.parquet";
+        std::string filename = "./temp/benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
         auto status = WriteParquetFile(num_columns, num_rows, filename);
         if (!status.ok()) {
             std::cerr << "Error writing file " << filename << ": " << status.ToString() << std::endl;

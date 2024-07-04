@@ -26,6 +26,9 @@ fi
 # Define the path to the vcpkg toolchain file
 VCPKG_TOOLCHAIN_FILE="$VCPKG_DIR/scripts/buildsystems/vcpkg.cmake"
 
+# Create the temp directory for storing test datasets
+mkdir -p "$PROJECT_ROOT/temp"
+
 # Create the build directory if it doesn't exist
 mkdir -p "$PROJECT_ROOT/build"
 

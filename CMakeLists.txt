@@ -35,9 +35,27 @@ target_link_libraries(arrow_benchmarks PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC
 find_package(Parquet CONFIG REQUIRED)
 target_link_libraries(arrow_benchmarks PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>")
 
+add_executable(
+    table_viewer src/table_viewer.cc
+)
+
+
+find_package(Arrow CONFIG REQUIRED)
+target_link_libraries(table_viewer PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>")
+
+find_package(Parquet CONFIG REQUIRED)
+target_link_libraries(table_viewer PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>")
+
 target_link_libraries(arrow_benchmarks PRIVATE 
     pthread
     dl
     stdc++fs
 )
+
+target_link_libraries(table_viewer PRIVATE 
+    pthread
+    dl
+    stdc++fs
+)
+
 
