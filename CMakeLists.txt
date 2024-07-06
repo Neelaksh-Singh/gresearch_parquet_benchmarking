@@ -13,49 +13,31 @@ set(CMAKE_FIND_DEBUG_MODE ON)
 find_package(Arrow CONFIG REQUIRED)
 find_package(Parquet CONFIG REQUIRED)
 
-
 # Print found package information
 message(STATUS "Arrow version: ${Arrow_VERSION}")
 message(STATUS "Parquet version: ${Parquet_VERSION}")
-
 
 # Print available targets
 get_property(targets DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
 message(STATUS "Available imported targets: ${targets}")
 
-# test_data_generator.cc
-# arrow_benchmarks.cc
-add_executable(
-    arrow_benchmarks src/test_data_generator.cc
+# List of source files for executables
+set(SOURCE_FILES
+    arrow_benchmarks
+    test_data_generator
+    table_viewer
+    metadata_benchmark
 )
 
-find_package(Arrow CONFIG REQUIRED)
-target_link_libraries(arrow_benchmarks PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>")
-
-find_package(Parquet CONFIG REQUIRED)
-target_link_libraries(arrow_benchmarks PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>")
-
-add_executable(
-    table_viewer src/table_viewer.cc
-)
-
-
-find_package(Arrow CONFIG REQUIRED)
-target_link_libraries(table_viewer PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>")
-
-find_package(Parquet CONFIG REQUIRED)
-target_link_libraries(table_viewer PRIVATE "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>")
-
-target_link_libraries(arrow_benchmarks PRIVATE 
-    pthread
-    dl
-    stdc++fs
-)
-
-target_link_libraries(table_viewer PRIVATE 
-    pthread
-    dl
-    stdc++fs
-)
-
-
+# Add executables and link libraries in a loop
+foreach(SOURCE_FILE IN LISTS SOURCE_FILES)
+    add_executable(${SOURCE_FILE} src/${SOURCE_FILE}.cc)
+    
+    target_link_libraries(${SOURCE_FILE} PRIVATE
+        "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
+        "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+        pthread
+        dl
+        stdc++fs
+    )
+endforeach()

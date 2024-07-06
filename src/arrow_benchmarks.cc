@@ -4,6 +4,7 @@
 #include <parquet/arrow/writer.h>
 #include <parquet/parquet_version.h>
 #include <iostream>
+#include<chrono>
 
 int main() {
     std::cout << "Arrow version: " << ARROW_VERSION_STRING << std::endl;

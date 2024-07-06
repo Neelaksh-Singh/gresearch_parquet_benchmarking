@@ -5,11 +5,6 @@
       "arrow",
       "parquet",
       "snappy",
-      "openssl",
-      "zlib",
-      "brotli",
-      "lz4",
-      "zstd",
-      "thrift"
+      "abseil"
   ]
 }
