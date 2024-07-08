@@ -2,11 +2,16 @@
 #define METADATA_BENCHMARK_H
 
 #include <string>
+#include <vector>
+#include "data_generator.h"
 
 struct BenchmarkResult {
     int num_columns;
-    double decode_time;  // in milliseconds
-    double size;         // in megabytes
+    double total_decode_time;  // in microseconds
+    double thrift_decode_time; // in microseconds
+    double schema_build_time;  // in microseconds
+    double size;               // in bytes
+    StatsLevel stats_level;
 };
 
 BenchmarkResult BenchmarkMetadata(const std::string& filename);

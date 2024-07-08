@@ -21,23 +21,28 @@ message(STATUS "Parquet version: ${Parquet_VERSION}")
 get_property(targets DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
 message(STATUS "Available imported targets: ${targets}")
 
-# List of source files for executables
-set(SOURCE_FILES
-    arrow_benchmarks
-    test_data_generator
-    table_viewer
-    metadata_benchmark
+add_library(data_generator STATIC
+    src/data_generator.cc
 )
 
-# Add executables and link libraries in a loop
-foreach(SOURCE_FILE IN LISTS SOURCE_FILES)
-    add_executable(${SOURCE_FILE} src/${SOURCE_FILE}.cc)
-    
-    target_link_libraries(${SOURCE_FILE} PRIVATE
-        "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
-        "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
-        pthread
-        dl
-        stdc++fs
-    )
-endforeach()
+# Link Arrow and Parquet to data_generator
+target_link_libraries(data_generator PRIVATE 
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+)
+
+# metadata_benchmark executable
+add_executable(
+    metadata_benchmark 
+    src/metadata_benchmark.cc
+)
+
+# Link data_generator and other libraries to metadata_benchmark
+target_link_libraries(metadata_benchmark PRIVATE 
+    data_generator
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+    pthread
+    dl
+    stdc++fs
+)
