@@ -39,3 +39,4 @@ arrow_benchmarks
 temp/
 .vscode/
 *.png
+*.csv

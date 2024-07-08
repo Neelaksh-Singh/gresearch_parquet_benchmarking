@@ -36,26 +36,36 @@ plt.ylabel('Metadata decode time (ms)')
 plt.title('Metadata decode time')
 plt.legend(title='Stats level')
 plt.tight_layout()
-plt.savefig('metadata_decode_time.png')
+plt.savefig('./temp/metadata_decode_time.png')
 plt.close()
 
 # Plot 2: Metadata size
+# Plot 2: Metadata size
 plt.figure(figsize=(12, 8))
-for stats in df['stats_level'].unique():
+markers = ['o', 's', '^']
+colors = ['blue', 'orange', 'green']
+for i, stats in enumerate(df['stats_level'].unique()):
     data = df[df['stats_level'] == stats]
-    plt.plot(data['num_columns'], data['size_mb'], marker='o', label=stats)
-    for i, point in data.iterrows():
+    plt.plot(data['num_columns'], data['size_mb'], 
+             marker=markers[i], color=colors[i], linestyle='-', 
+             label=stats, alpha=0.7, markersize=10)
+    for _, point in data.iterrows():
         plt.annotate(f"{point['size_mb']:.2f}", 
                      (point['num_columns'], point['size_mb']),
-                     textcoords="offset points", xytext=(0,10), ha='center')
+                     textcoords="offset points", 
+                     xytext=(0, 10 + i*5),  # Stagger labels vertically
+                     ha='center', va='bottom',
+                     color=colors[i])
+
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel('Number of columns')
 plt.ylabel('Metadata size (MB)')
 plt.title('Metadata size')
-plt.legend(title='Stats level')
+plt.legend(title='Stats level', loc='best')
+plt.grid(True, which="both", ls="-", alpha=0.2)
 plt.tight_layout()
-plt.savefig('metadata_size.png')
+plt.savefig('./temp/metadata_size.png', dpi=300)
 plt.close()
 
 # Plot 3: Decode time breakdown
@@ -69,7 +79,7 @@ plt.ylabel('Time (ms)')
 plt.title('Decode time breakdown')
 plt.yscale('log')
 plt.tight_layout()
-plt.savefig('decode_time_breakdown.png')
+plt.savefig('./temp/decode_time_breakdown.png')
 plt.close()
 
 # Plot 4: Decode time per column
@@ -85,7 +95,7 @@ for i, bar in enumerate(plt.gca().patches):
                  ha='center', va='bottom', xytext=(0, 3),
                  textcoords='offset points')
 plt.tight_layout()
-plt.savefig('decode_time_per_column.png')
+plt.savefig('./temp/decode_time_per_column.png')
 plt.close()
 
 print("Plots have been saved as separate PNG files.")

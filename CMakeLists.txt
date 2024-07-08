@@ -46,3 +46,16 @@ target_link_libraries(metadata_benchmark PRIVATE
     dl
     stdc++fs
 )
+
+add_executable(
+    compression_benchmark
+    src/compression_benchmark.cc
+)
+
+target_link_libraries(compression_benchmark PRIVATE 
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+    pthread
+    dl
+    stdc++fs
+)
