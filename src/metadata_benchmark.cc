@@ -3,12 +3,13 @@
 #include <arrow/io/api.h>
 #include <parquet/arrow/reader.h>
 #include <parquet/file_reader.h>
+#include <parquet/statistics.h>
 #include <chrono>
 #include <fstream>
 #include "metadata_benchmark.h"
 
-BenchmarkResult BenchmarkMetadata(const std::string& filename) {
-    BenchmarkResult result;
+BenchmarkChunksAndPagesResult BenchmarkChunksAndPages(const std::string& filename) {
+    BenchmarkChunksAndPagesResult result;
 
     std::shared_ptr<arrow::io::ReadableFile> infile;
     PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename));
@@ -38,7 +39,44 @@ BenchmarkResult BenchmarkMetadata(const std::string& filename) {
     return result;
 }
 
-void WriteBenchmarkResults(const std::vector<BenchmarkResult>& results, const std::string& filename) {
+BenchmarkStatsResult BenchmarkStats(const std::string& filename) {
+    BenchmarkStatsResult result;
+
+    std::shared_ptr<arrow::io::ReadableFile> infile;
+    PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename));
+
+    auto start = std::chrono::high_resolution_clock::now();
+    
+    std::unique_ptr<parquet::ParquetFileReader> parquet_reader = 
+        parquet::ParquetFileReader::Open(infile);
+    
+    std::shared_ptr<parquet::FileMetaData> file_metadata = parquet_reader->metadata();
+    int num_row_groups = file_metadata->num_row_groups();
+    int num_columns = file_metadata->num_columns();
+
+    for (int r = 0; r < num_row_groups; ++r) {
+        auto row_group_reader = parquet_reader->RowGroup(r);
+        for (int c = 0; c < num_columns; ++c) {
+            auto column_chunk = row_group_reader->metadata()->ColumnChunk(c);
+            if (column_chunk->is_stats_set()) {
+                // Access statistics (this will trigger decoding)
+                column_chunk->statistics()->HasMinMax();
+            
+            }
+        }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    result.stats_decode_time = std::chrono::duration<double, std::micro>(end - start).count();
+    result.size = infile->GetSize().ValueOrDie();
+    result.num_columns = num_columns;
+    result.num_row_groups = num_row_groups;
+
+    return result;
+}
+
+void WriteChunksAndPagesResults(const std::vector<BenchmarkChunksAndPagesResult>& results, const std::string& filename) {
     std::ofstream file(filename);
     file << "num_columns,total_decode_time_us,thrift_decode_time_us,schema_build_time_us,size_bytes,stats_level\n";
     for (const auto& result : results) {
@@ -51,13 +89,27 @@ void WriteBenchmarkResults(const std::vector<BenchmarkResult>& results, const st
     }
 }
 
+void WriteStatsBenchmarkResults(const std::vector<BenchmarkStatsResult>& results, const std::string& filename) {
+    std::ofstream file(filename);
+    file << "num_columns,num_row_groups,stats_decode_time_us,size_bytes,stats_enabled\n";
+    for (const auto& result : results) {
+        file << result.num_columns << ","
+             << result.num_row_groups << ","
+             << result.stats_decode_time << ","
+             << result.size << ","
+             << (result.stats_enabled ? "true" : "false") << "\n";
+    }
+}
+
 int main() {
     std::vector<int> column_counts = {10, 100, 1000, 10000};
     std::vector<StatsLevel> stats_levels = {StatsLevel::NONE, StatsLevel::CHUNK, StatsLevel::PAGE};
     int num_rows = 10000;  // 1 million rows
-    std::string output_file = "benchmark_results.csv";
+    std::string chunks_and_pages_output_file = "benchmark_chunks_and_pages.csv";
+    std::string stats_output_file = "benchmark_stats.csv";
 
-    std::vector<BenchmarkResult> results;
+    std::vector<BenchmarkChunksAndPagesResult> chunks_and_pages_results;
+    std::vector<BenchmarkStatsResult> stats_results;
 
     for (int num_columns : column_counts) {
         for (auto stats_level : stats_levels) {
@@ -70,14 +122,20 @@ int main() {
                 continue;
             }
 
-            auto result = BenchmarkMetadata(filename);
-            result.stats_level = stats_level;
-            results.push_back(result);
+            auto chunks_and_pages_result = BenchmarkChunksAndPages(filename);
+            chunks_and_pages_result.stats_level = stats_level;
+            chunks_and_pages_results.push_back(chunks_and_pages_result);
+
+            // Benchmark statistics
+            auto stats_result = BenchmarkStats(filename);
+            stats_result.stats_enabled = (stats_level != StatsLevel::NONE);
+            stats_results.push_back(stats_result);
 
             std::remove(filename.c_str());
         }
     }
 
-    WriteBenchmarkResults(results, output_file);
+    WriteChunksAndPagesResults(chunks_and_pages_results, chunks_and_pages_output_file);
+    WriteStatsBenchmarkResults(stats_results, stats_output_file);
     return 0;
 }

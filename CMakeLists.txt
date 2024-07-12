@@ -21,6 +21,28 @@ message(STATUS "Parquet version: ${Parquet_VERSION}")
 get_property(targets DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
 message(STATUS "Available imported targets: ${targets}")
 
+# Automatically find all source files in the src directory
+file(GLOB_RECURSE SRC_FILES "src/*.cc")
+
+# Create a list of all benchmark executables
+set(BENCHMARK_EXECUTABLES "")
+
+# Function to add a benchmark executable
+function(add_benchmark_executable NAME)
+    add_executable(${NAME} src/${NAME}.cc)
+    target_link_libraries(${NAME} PRIVATE 
+        data_generator
+        "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
+        "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+        pthread
+        dl
+        stdc++fs
+    )
+    list(APPEND BENCHMARK_EXECUTABLES ${NAME})
+    set(BENCHMARK_EXECUTABLES ${BENCHMARK_EXECUTABLES} PARENT_SCOPE)
+endfunction()
+
+# Create the data_generator library
 add_library(data_generator STATIC
     src/data_generator.cc
 )
@@ -31,31 +53,17 @@ target_link_libraries(data_generator PRIVATE
     "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
 )
 
-# metadata_benchmark executable
-add_executable(
-    metadata_benchmark 
-    src/metadata_benchmark.cc
-)
+# Add benchmark executables
+add_benchmark_executable(metadata_benchmark)
+add_benchmark_executable(compression_benchmark)
 
-# Link data_generator and other libraries to metadata_benchmark
-target_link_libraries(metadata_benchmark PRIVATE 
-    data_generator
-    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
-    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
-    pthread
-    dl
-    stdc++fs
-)
+# Automatically add new benchmark executables
+foreach(SRC_FILE ${SRC_FILES})
+    get_filename_component(FILE_NAME ${SRC_FILE} NAME_WE)
+    if(NOT ${FILE_NAME} STREQUAL "data_generator" AND NOT ${FILE_NAME} IN_LIST BENCHMARK_EXECUTABLES)
+        add_benchmark_executable(${FILE_NAME})
+    endif()
+endforeach()
 
-add_executable(
-    compression_benchmark
-    src/compression_benchmark.cc
-)
-
-target_link_libraries(compression_benchmark PRIVATE 
-    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
-    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
-    pthread
-    dl
-    stdc++fs
-)
+# Print the list of all benchmark executables
+message(STATUS "Benchmark executables: ${BENCHMARK_EXECUTABLES}")

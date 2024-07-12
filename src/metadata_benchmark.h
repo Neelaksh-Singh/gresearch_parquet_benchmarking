@@ -5,16 +5,26 @@
 #include <vector>
 #include "data_generator.h"
 
-struct BenchmarkResult {
+struct BenchmarkChunksAndPagesResult {
+    double total_decode_time;
+    double thrift_decode_time;
+    double schema_build_time;
+    int64_t size;
     int num_columns;
-    double total_decode_time;  // in microseconds
-    double thrift_decode_time; // in microseconds
-    double schema_build_time;  // in microseconds
-    double size;               // in bytes
     StatsLevel stats_level;
 };
 
-BenchmarkResult BenchmarkMetadata(const std::string& filename);
-void WriteBenchmarkResults(const std::vector<BenchmarkResult>& results, const std::string& filename);
+struct BenchmarkStatsResult {
+    double stats_decode_time;
+    int64_t size;
+    int num_columns;
+    int num_row_groups;
+    bool stats_enabled;
+};
+
+BenchmarkChunksAndPagesResult BenchmarkChunksAndPages(const std::string& filename);
+BenchmarkStatsResult BenchmarkStats(const std::string& filename);
+void WriteChunksAndPagesResults(const std::vector<BenchmarkChunksAndPagesResult>& results, const std::string& filename);
+void WriteStatsBenchmarkResults(const std::vector<BenchmarkStatsResult>& results, const std::string& filename);
 
 #endif  // METADATA_BENCHMARK_H

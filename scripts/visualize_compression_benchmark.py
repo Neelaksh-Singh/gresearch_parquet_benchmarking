@@ -24,7 +24,7 @@ plt.xlabel('Number of Columns')
 plt.yscale('log')
 plt.legend(title='Algorithm')
 plt.tight_layout()
-plt.savefig('encoding_time.png')
+plt.savefig('./temp/encoding_time.png')
 plt.close()
 
 # Plot 2: Decoding time
@@ -36,7 +36,7 @@ plt.xlabel('Number of Columns')
 plt.yscale('log')
 plt.legend(title='Algorithm')
 plt.tight_layout()
-plt.savefig('decoding_time.png')
+plt.savefig('./temp/decoding_time.png')
 plt.close()
 
 # Plot 3: Compressed size
@@ -48,7 +48,7 @@ plt.xlabel('Number of Columns')
 plt.yscale('log')
 plt.legend(title='Algorithm')
 plt.tight_layout()
-plt.savefig('compressed_size.png')
+plt.savefig('./temp/compressed_size.png')
 plt.close()
 
 print("Plots have been saved as separate PNG files.")
