@@ -36,4 +36,4 @@ mkdir -p "$PROJECT_ROOT/build"
 cmake -B "$PROJECT_ROOT/build" -S "$PROJECT_ROOT" -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TOOLCHAIN_FILE"
 
 # Build the project
-cmake --build "$PROJECT_ROOT/build"
+cmake --build "$PROJECT_ROOT/build" -j4
