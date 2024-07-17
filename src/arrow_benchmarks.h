@@ -1,5 +1,5 @@
-#ifndef METADATA_BENCHMARK_H
-#define METADATA_BENCHMARK_H
+#ifndef ARROW_BENCHMARKS_H
+#define ARROW_BENCHMARKS_H
 
 #include <string>
 #include <vector>
@@ -13,4 +13,4 @@ struct BenchmarkResult {
 BenchmarkResult BenchmarkMetadata(const std::string& filename);
 void WriteBenchmarkResults(const std::vector<BenchmarkResult>& results, const std::string& filename);
 
-#endif  // METADATA_BENCHMARK_H
+#endif  // ARROW_BENCHMARKS_H
