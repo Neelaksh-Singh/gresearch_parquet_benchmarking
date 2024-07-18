@@ -56,7 +56,7 @@ target_link_libraries(data_generator PRIVATE
 # Add benchmark executables
 add_benchmark_executable(metadata_benchmark)
 add_benchmark_executable(compression_benchmark)
-
+add_benchmark_executable(data_read_benchmark)
 # Automatically add new benchmark executables
 foreach(SRC_FILE ${SRC_FILES})
     get_filename_component(FILE_NAME ${SRC_FILE} NAME_WE)
