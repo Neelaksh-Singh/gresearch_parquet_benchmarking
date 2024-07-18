@@ -103,7 +103,7 @@ void CompressionBenchmark::WriteBenchmarkResults(const std::vector<CompressionBe
 int main() {
     std::vector<int> column_counts = {10, 100, 1000, 10000};
     int num_rows = 10000;  
-    std::string filename_prefix = "compression_benchmark";
+    std::string filename_prefix = "./temp/compression_benchmark";
 
     for (int num_columns : column_counts) {
         std::cout << "Running benchmark for " << num_columns << " columns..." << std::endl;

@@ -139,7 +139,7 @@ int main() {
     int num_rows = 100000;  
 
     for (int num_columns : column_counts) {
-        std::string filename = "data_read_benchmark_" + std::to_string(num_columns) + ".parquet";
+        std::string filename = "./temp/data_read_benchmark_" + std::to_string(num_columns) + ".parquet";
         std::cout << "Running benchmark for " << num_columns << " columns..." << std::endl;
         
         auto status = DataReadBenchmark::RunBenchmark(num_columns, num_rows, filename);
@@ -148,6 +148,7 @@ int main() {
                       << status.ToString() << std::endl;
             return 1;
         }
+        std::remove(filename.c_str());
     }
 
     std::cout << "All benchmarks completed successfully. Results saved to CSV files." << std::endl;

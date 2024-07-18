@@ -34,7 +34,7 @@ void WriteBenchmarkResults(const std::vector<BenchmarkResult>& results, const st
 
 int main() {
     std::vector<int> column_counts = {10, 100, 1000, 10000};
-    std::string output_file = "benchmark_decode_and_size.csv";
+    std::string output_file = "./temp/benchmark_decode_and_size.csv";
 
     std::vector<BenchmarkResult> results;
     for (int num_columns : column_counts) {

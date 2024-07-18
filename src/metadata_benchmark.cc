@@ -105,8 +105,8 @@ int main() {
     std::vector<int> column_counts = {10, 100, 1000, 10000};
     std::vector<StatsLevel> stats_levels = {StatsLevel::NONE, StatsLevel::CHUNK, StatsLevel::PAGE};
     int num_rows = 10000;  // 1 million rows
-    std::string chunks_and_pages_output_file = "benchmark_chunks_and_pages.csv";
-    std::string stats_output_file = "benchmark_stats.csv";
+    std::string chunks_and_pages_output_file = "./temp/benchmark_chunks_and_pages.csv";
+    std::string stats_output_file = "./temp/benchmark_stats.csv";
 
     std::vector<BenchmarkChunksAndPagesResult> chunks_and_pages_results;
     std::vector<BenchmarkStatsResult> stats_results;
