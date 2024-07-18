@@ -20,6 +20,10 @@ fi
 # Integrate vcpkg with the project
 "$VCPKG_DIR/vcpkg" integrate install
 
+# Install prereqs for vcpkg
+sudo apt-get install flex
+sudo apt-get install bison
+
 # Install dependencies from vcpkg.json
 "$VCPKG_DIR/vcpkg" install
 

@@ -38,7 +38,7 @@ int main() {
 
     std::vector<BenchmarkResult> results;
     for (int num_columns : column_counts) {
-        std::string filename = "./temp/benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
+        std::string filename = "benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
         auto result = BenchmarkMetadata(filename);
         result.num_columns = num_columns;
         results.push_back(result);
