@@ -49,7 +49,7 @@ int main() {
     int num_rows = 10000;  // Adjust as needed
 
     for (int num_columns : column_counts) {
-        std::string filename = "./temp/benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
+        std::string filename = "benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
         auto status = WriteParquetFile(num_columns, num_rows, filename);
         if (!status.ok()) {
             std::cerr << "Error writing file " << filename << ": " << status.ToString() << std::endl;

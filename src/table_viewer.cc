@@ -37,7 +37,7 @@ arrow::Status ReadParquetFile(const std::string& filename) {
 }
 
 int main() {
-    std::string filename = "./temp/benchmark_float32_10cols.parquet";  // Replace with the desired filename
+    std::string filename = "benchmark_float32_10cols.parquet";  // Replace with the desired filename
 
     auto status = ReadParquetFile(filename);
     if (!status.ok()) {
