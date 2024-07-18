@@ -14,3 +14,4 @@ jupyter nbconvert --to python 'Parquet-CPP Benchmarking.ipynb'
 # Run the notebook, check for errors
 rm temp/*
 python 'Parquet-CPP Benchmarking.py'
+
