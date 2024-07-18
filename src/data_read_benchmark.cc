@@ -135,11 +135,11 @@ void DataReadBenchmark::WriteBenchmarkResults(const std::vector<BenchmarkResult>
 }
 
 int main() {
-    std::vector<int> column_counts = {10, 100, 1000, 2000};
+    std::vector<int> column_counts = {10, 100, 1000};
     int num_rows = 100000;  
 
     for (int num_columns : column_counts) {
-        std::string filename = "./temp/data_read_benchmark_" + std::to_string(num_columns) + ".parquet";
+        std::string filename = "data_read_benchmark_" + std::to_string(num_columns) + ".parquet";
         std::cout << "Running benchmark for " << num_columns << " columns..." << std::endl;
         
         auto status = DataReadBenchmark::RunBenchmark(num_columns, num_rows, filename);

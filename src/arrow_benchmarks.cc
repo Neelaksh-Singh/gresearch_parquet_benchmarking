@@ -34,11 +34,11 @@ void WriteBenchmarkResults(const std::vector<BenchmarkResult>& results, const st
 
 int main() {
     std::vector<int> column_counts = {10, 100, 1000, 10000};
-    std::string output_file = "./temp/benchmark_decode_and_size.csv";
+    std::string output_file = "benchmark_decode_and_size.csv";
 
     std::vector<BenchmarkResult> results;
     for (int num_columns : column_counts) {
-        std::string filename = "./temp/benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
+        std::string filename = "benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
         auto result = BenchmarkMetadata(filename);
         result.num_columns = num_columns;
         results.push_back(result);
