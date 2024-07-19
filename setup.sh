@@ -10,7 +10,7 @@ PROJECT_ROOT=$(dirname "$0")
 VCPKG_DIR="$PROJECT_ROOT/vcpkg"
 
 # Clone vcpkg if it doesn't already exist
-if [ ! -d "$VCPKG_DIR" ]; then
+if [ ! -d "$VCPKG_DIR" ] || [ -z "$( ls -A $VCPKG_DIR )" ]; then
     git clone https://github.com/Microsoft/vcpkg.git "$VCPKG_DIR"
 fi
 
