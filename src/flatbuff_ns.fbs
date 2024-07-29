@@ -1,0 +1,331 @@
+namespace parquet2;
+
+enum Type : byte {
+  UNSET = -1,
+  BOOLEAN = 0,
+  INT32 = 1,
+  INT64 = 2,
+  INT96 = 3,
+  FLOAT = 4,
+  DOUBLE = 5,
+  BYTE_ARRAY = 6,
+  FIXED_LEN_BYTE_ARRAY = 7,
+}
+
+enum ConvertedType : byte {
+  UNSET = -1,
+  UTF8 = 0,
+  MAP = 1,
+  MAP_KEY_VALUE = 2,
+  LIST = 3,
+  ENUM = 4,
+  DECIMAL = 5,
+  DATE = 6,
+  TIME_MILLIS = 7,
+  TIME_MICROS = 8,
+  TIMESTAMP_MILLIS = 9,
+  TIMESTAMP_MICROS = 10,
+  UINT_8 = 11,
+  UINT_16 = 12,
+  UINT_32 = 13,
+  UINT64 = 14,
+  INT_8 = 15,
+  INT_16 = 16,
+  INT_32 = 17,
+  INT_64 = 18,
+  JSON = 19,
+  BSON = 20,
+  INTERVAL = 21,
+}
+
+enum FieldRepetitionType : byte {
+  UNSET = -1,
+  REQUIRED = 0,
+  OPTIONAL = 1,
+  REPEATED = 2,
+}
+
+table Value {
+  data: [byte];
+}
+
+table Statistics {
+  max: [byte];
+  min: [byte];
+  null_count: long;
+  distinct_count: long;
+  max_value: [byte];
+  min_value: [byte];
+  is_max_value_exact: bool;
+  is_min_value_exact: bool;
+  max8: long;
+  min8: long;
+}
+
+table StringType {}
+table UUIDType {}
+table MapType {}
+table ListType {}
+table EnumType {}
+table DateType {}
+table NullType {}
+table DecimalType {
+  precision: int;
+  scale: int;
+}
+table MilliSeconds {}
+table MicroSeconds {}
+table NanoSeconds {}
+union TimeUnit { MilliSeconds, MicroSeconds, NanoSeconds }
+table TimestampType {
+  is_adjusted_to_utc: bool;
+  unit: TimeUnit;
+}
+table TimeType {
+  is_adjusted_to_utc: bool;
+  unit: TimeUnit;
+}
+table IntType {
+  bit_width: byte;
+  is_signed: bool;
+}
+table JsonType {}
+table BsonType {}
+
+union LogicalType {
+  StringType,
+  MapType,
+  ListType,
+  EnumType,
+  DecimalType,
+  DateType,
+  TimeType,
+  TimestampType,
+  IntType,
+  NullType,
+  JsonType,
+  BsonType,
+  UUIDType,
+}
+
+table SchemaElement {
+  type: Type = UNSET;
+  type_length: int = 0;
+  repetition_type: FieldRepetitionType = UNSET;
+  name: string;
+  num_children: int = 0;
+  converted_type: ConvertedType = UNSET;
+  scale: int;
+  precision: int;
+  field_id: int;
+  logical_type: LogicalType;
+}
+
+enum Encoding : byte {
+  PLAIN = 0,
+  // GROUP_VAR_INT = 1,
+  PLAIN_DICTIONARY = 2,
+  RLE = 3,
+  BIT_PACKED = 4,
+  DELTA_BINARY_PACKED = 5,
+  DELTA_LENGTH_BYTE_ARRAY = 6,
+  DELTA_BYTE_ARRAY = 7,
+  RLE_DICTIONARY = 8,
+  BYTE_STREAM_SPLIT = 9,
+}
+
+enum CompressionCodec : byte {
+  UNCOMPRESSED = 0,
+  SNAPPY = 1,
+  GZIP = 2,
+  LZO = 3,
+  BROTLI = 4,
+  LZ4 = 5,
+  ZSTD = 6,
+  LZ4_RAW = 7,
+}
+
+enum PageType : byte {
+  DATA_PAGE = 0,
+  INDEX_PAGE = 1,
+  DICTIONARY_PAGE = 2,
+  DATA_PAGE_V2 = 3,
+}
+
+enum BoundaryOrder : byte {
+  UNORDERED = 0,
+  ASCENDING = 1,
+  DESCENDING = 2,
+}
+
+table DataPageHeader {
+  num_values: int;
+  encoding: Encoding;
+  definition_level_encoding: Encoding;
+  repetition_level_encoding: Encoding;
+  statistics: Statistics;
+}
+
+table IndexPageHeader {}
+
+table DictionaryPageHeader {
+  num_values: int;
+  encoding: Encoding;
+  is_sorted: bool;
+}
+
+table DataPageHeaderV2 {
+  num_values: int;
+  num_nulls: int;
+  num_rows: int;
+  encoding: Encoding;
+  definition_levels_byte_length: int;
+  repetition_levels_byte_length: int;
+  is_compressed: bool;
+  statistics: Statistics;
+}
+
+table SplitBlockAlgorithm {}
+union BloomFilterAlgorithm { SplitBlockAlgorithm }
+
+table XxHash {}
+union BloomFilterHash { XxHash }
+
+table Uncompressed {}
+union BloomFilterCompression { Uncompressed }
+
+table BloomFilterHeader {
+  num_bytes: int;
+  algorithm: BloomFilterAlgorithm;
+  hash: BloomFilterHash;
+  compression: BloomFilterCompression;
+}
+
+table PageHeader {
+  type: PageType;
+  uncompressed_page_size: int;
+  compressed_page_size: int;
+  crc: int;
+  data_page_header: DataPageHeader;
+  index_page_header: IndexPageHeader;
+  dictionary_page_header: DictionaryPageHeader;
+  data_page_header_v2: DataPageHeaderV2;
+}
+
+table KeyValue {
+  key: string;
+  value: string;
+}
+
+table SortingColumn {
+  column_idx: int;
+  descending: bool;
+  nulls_first: bool;
+}
+
+table PageEncodingStats {
+  page_type: PageType;
+  encoding: Encoding;
+  count: int;
+}
+
+table ColumnMetadata {
+  type: Type;
+  encodings: [Encoding];
+  path_in_schema: [string];
+  codec: CompressionCodec;
+  num_values: long;
+  total_uncompressed_size: long;
+  total_compressed_size: long;
+  key_value_metadata: [KeyValue];
+  data_page_offset: long;
+  index_page_offset: long = -1;
+  dictionary_page_offset: long = -1;
+  statistics: Statistics;
+  encoding_stats: [PageEncodingStats];
+  bloom_filter_offset: long = -1;
+  schema_index: int = -1;
+}
+
+table EncryptionWithFooterKey {}
+table EncryptionWithColumnKey {
+  path_in_schema: [string];
+  key_metadata: [byte];
+}
+union ColumnCryptoMetadata { EncryptionWithFooterKey, EncryptionWithColumnKey }
+
+table ColumnChunk {
+  file_path: string;
+  file_offset: long;
+  meta_data: ColumnMetadata;
+  offset_index_offset: long = -1;
+  offset_index_length: int = -1;
+  column_index_offset: long = -1;
+  column_index_length: int = -1;
+  crypto_metadata: ColumnCryptoMetadata;
+  encrypted_column_metadata: [byte];
+}
+
+table RowGroup {
+  columns: [ColumnChunk];
+  total_byte_size: long;
+  num_rows: long;
+  sorting_columns: [SortingColumn];
+  file_offset: long = -1;
+  total_compressed_size: long = -1;
+  ordinal: short = -1;
+}
+
+table TypeDefinedOrder {}
+union ColumnOrder { TypeDefinedOrder }
+
+table PageLocation {
+  offset: long;
+  compressed_page_size: int;
+  first_row_index: int;
+}
+
+table OffsetIndex {
+  page_locations: [PageLocation];
+}
+
+table ColumnIndex {
+  null_pages: [bool];
+  min_values: [Value];
+  max_values: [Value];
+  boundary_order: BoundaryOrder;
+  null_counts: [long];
+}
+
+table AesGcmV1 {
+  aad_prefix: [byte];
+  aad_file_unique: [byte];
+  supply_aad_prefix: bool;
+}
+
+table AesGcmCtrV1 {
+  aad_prefix: [byte];
+  aad_file_unique: [byte];
+  supply_aad_prefix: bool;
+}
+
+union EncryptionAlgorithm { AesGcmV1, AesGcmCtrV1 }
+
+table FileMetaData {
+  version: int;
+  schema: [SchemaElement];
+  num_rows: long;
+  row_groups: [RowGroup];
+  key_value_metadata: [KeyValue];
+  created_by: string;
+  // column_orders: [ColumnOrder];
+  encryption_algorithm: EncryptionAlgorithm;
+  footer_signing_key_metadata: [byte];
+}
+
+table FileCryptoMetaData {
+  encryption_algorithm: EncryptionAlgorithm;
+  key_metadata: [byte];
+}
+
+root_type FileMetaData;

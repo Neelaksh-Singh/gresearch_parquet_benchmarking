@@ -5,6 +5,7 @@
       "arrow",
       "parquet",
       "snappy",
-      "abseil"
+      "abseil",
+      "flatbuffers"
   ]
 }

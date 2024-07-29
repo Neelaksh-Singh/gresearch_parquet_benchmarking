@@ -12,10 +12,12 @@ set(CMAKE_FIND_DEBUG_MODE ON)
 # Find packages
 find_package(Arrow CONFIG REQUIRED)
 find_package(Parquet CONFIG REQUIRED)
+find_package(Flatbuffers CONFIG REQUIRED)
 
 # Print found package information
 message(STATUS "Arrow version: ${Arrow_VERSION}")
 message(STATUS "Parquet version: ${Parquet_VERSION}")
+message(STATUS "FlatBuffers version: ${Flatbuffers_VERSION}")
 
 # Print available targets
 get_property(targets DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
