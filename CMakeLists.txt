@@ -12,12 +12,16 @@ set(CMAKE_FIND_DEBUG_MODE ON)
 # Find packages
 find_package(Arrow CONFIG REQUIRED)
 find_package(Parquet CONFIG REQUIRED)
-find_package(Flatbuffers CONFIG REQUIRED)
+set(flatbuffers_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-linux/share/flatbuffers")
+find_package(flatbuffers CONFIG REQUIRED)
+set(benchmark_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-linux/share/benchmark")
+find_package(benchmark CONFIG REQUIRED)  
 
 # Print found package information
 message(STATUS "Arrow version: ${Arrow_VERSION}")
 message(STATUS "Parquet version: ${Parquet_VERSION}")
-message(STATUS "FlatBuffers version: ${Flatbuffers_VERSION}")
+message(STATUS "flatbuffers version: ${flatbuffers_VERSION}")
+message(STATUS "benchmark version: ${benchmark_VERSION}")  # Add this line
 
 # Print available targets
 get_property(targets DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
@@ -29,6 +33,18 @@ file(GLOB_RECURSE SRC_FILES "src/*.cc")
 # Create a list of all benchmark executables
 set(BENCHMARK_EXECUTABLES "")
 
+add_executable(pq_fb_ns_data_generator src/pq_fb_ns_data_generator.cc)
+target_link_libraries(pq_fb_ns_data_generator PRIVATE 
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
+    "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+    flatbuffers::flatbuffers
+    benchmark::benchmark  # Add this line
+    pthread
+    dl
+    stdc++fs
+)
+list(APPEND BENCHMARK_EXECUTABLES pq_fb_ns_data_generator)
+
 # Function to add a benchmark executable
 function(add_benchmark_executable NAME)
     add_executable(${NAME} src/${NAME}.cc)
@@ -36,6 +52,7 @@ function(add_benchmark_executable NAME)
         data_generator
         "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
         "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+        benchmark::benchmark  # Add this line
         pthread
         dl
         stdc++fs
@@ -53,6 +70,7 @@ add_library(data_generator STATIC
 target_link_libraries(data_generator PRIVATE 
     "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Arrow::arrow_static,Arrow::arrow_shared>"
     "$<IF:$<BOOL:${ARROW_BUILD_STATIC}>,Parquet::parquet_static,Parquet::parquet_shared>"
+    flatbuffers::flatbuffers  # Add this line if data_generator needs flatbuffers
 )
 
 # Add benchmark executables

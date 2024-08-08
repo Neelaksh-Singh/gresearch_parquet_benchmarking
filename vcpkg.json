@@ -6,6 +6,7 @@
       "parquet",
       "snappy",
       "abseil",
-      "flatbuffers"
+      "flatbuffers",
+      "benchmark"
   ]
 }

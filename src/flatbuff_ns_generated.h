@@ -1030,16 +1030,16 @@ struct Statistics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(max()) &&
            VerifyOffset(verifier, VT_MIN) &&
            verifier.VerifyVector(min()) &&
-           VerifyField<int64_t>(verifier, VT_NULL_COUNT) &&
-           VerifyField<int64_t>(verifier, VT_DISTINCT_COUNT) &&
+           VerifyField<int64_t>(verifier, VT_NULL_COUNT, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_DISTINCT_COUNT, sizeof(int64_t)) &&
            VerifyOffset(verifier, VT_MAX_VALUE) &&
            verifier.VerifyVector(max_value()) &&
            VerifyOffset(verifier, VT_MIN_VALUE) &&
            verifier.VerifyVector(min_value()) &&
-           VerifyField<uint8_t>(verifier, VT_IS_MAX_VALUE_EXACT) &&
-           VerifyField<uint8_t>(verifier, VT_IS_MIN_VALUE_EXACT) &&
-           VerifyField<int64_t>(verifier, VT_MAX8) &&
-           VerifyField<int64_t>(verifier, VT_MIN8) &&
+           VerifyField<uint8_t>(verifier, VT_IS_MAX_VALUE_EXACT, sizeof(uint8_t)) &&
+           VerifyField<uint8_t>(verifier, VT_IS_MIN_VALUE_EXACT, sizeof(uint8_t)) &&
+           VerifyField<int64_t>(verifier, VT_MAX8, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_MIN8, sizeof(int64_t)) &&
            verifier.EndTable();
   }
 };
@@ -1362,8 +1362,8 @@ struct DecimalType FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_PRECISION) &&
-           VerifyField<int32_t>(verifier, VT_SCALE) &&
+           VerifyField<int32_t>(verifier, VT_PRECISION, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_SCALE, sizeof(int32_t)) &&
            verifier.EndTable();
   }
 };
@@ -1514,8 +1514,8 @@ struct TimestampType FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_IS_ADJUSTED_TO_UTC) &&
-           VerifyField<uint8_t>(verifier, VT_UNIT_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_IS_ADJUSTED_TO_UTC, sizeof(uint8_t)) &&
+           VerifyField<uint8_t>(verifier, VT_UNIT_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_UNIT) &&
            VerifyTimeUnit(verifier, unit(), unit_type()) &&
            verifier.EndTable();
@@ -1598,8 +1598,8 @@ struct TimeType FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_IS_ADJUSTED_TO_UTC) &&
-           VerifyField<uint8_t>(verifier, VT_UNIT_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_IS_ADJUSTED_TO_UTC, sizeof(uint8_t)) &&
+           VerifyField<uint8_t>(verifier, VT_UNIT_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_UNIT) &&
            VerifyTimeUnit(verifier, unit(), unit_type()) &&
            verifier.EndTable();
@@ -1668,8 +1668,8 @@ struct IntType FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_BIT_WIDTH) &&
-           VerifyField<uint8_t>(verifier, VT_IS_SIGNED) &&
+           VerifyField<int8_t>(verifier, VT_BIT_WIDTH, sizeof(int8_t)) &&
+           VerifyField<uint8_t>(verifier, VT_IS_SIGNED, sizeof(uint8_t)) &&
            verifier.EndTable();
   }
 };
@@ -1853,17 +1853,17 @@ struct SchemaElement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_TYPE) &&
-           VerifyField<int32_t>(verifier, VT_TYPE_LENGTH) &&
-           VerifyField<int8_t>(verifier, VT_REPETITION_TYPE) &&
+           VerifyField<int8_t>(verifier, VT_TYPE, sizeof(int8_t)) &&
+           VerifyField<int32_t>(verifier, VT_TYPE_LENGTH, sizeof(int32_t)) &&
+           VerifyField<int8_t>(verifier, VT_REPETITION_TYPE, sizeof(int8_t)) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<int32_t>(verifier, VT_NUM_CHILDREN) &&
-           VerifyField<int8_t>(verifier, VT_CONVERTED_TYPE) &&
-           VerifyField<int32_t>(verifier, VT_SCALE) &&
-           VerifyField<int32_t>(verifier, VT_PRECISION) &&
-           VerifyField<int32_t>(verifier, VT_FIELD_ID) &&
-           VerifyField<uint8_t>(verifier, VT_LOGICAL_TYPE_TYPE) &&
+           VerifyField<int32_t>(verifier, VT_NUM_CHILDREN, sizeof(int32_t)) &&
+           VerifyField<int8_t>(verifier, VT_CONVERTED_TYPE, sizeof(int8_t)) &&
+           VerifyField<int32_t>(verifier, VT_SCALE, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_PRECISION, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_FIELD_ID, sizeof(int32_t)) &&
+           VerifyField<uint8_t>(verifier, VT_LOGICAL_TYPE_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_LOGICAL_TYPE) &&
            VerifyLogicalType(verifier, logical_type(), logical_type_type()) &&
            verifier.EndTable();
@@ -2053,10 +2053,10 @@ struct DataPageHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_NUM_VALUES) &&
-           VerifyField<int8_t>(verifier, VT_ENCODING) &&
-           VerifyField<int8_t>(verifier, VT_DEFINITION_LEVEL_ENCODING) &&
-           VerifyField<int8_t>(verifier, VT_REPETITION_LEVEL_ENCODING) &&
+           VerifyField<int32_t>(verifier, VT_NUM_VALUES, sizeof(int32_t)) &&
+           VerifyField<int8_t>(verifier, VT_ENCODING, sizeof(int8_t)) &&
+           VerifyField<int8_t>(verifier, VT_DEFINITION_LEVEL_ENCODING, sizeof(int8_t)) &&
+           VerifyField<int8_t>(verifier, VT_REPETITION_LEVEL_ENCODING, sizeof(int8_t)) &&
            VerifyOffset(verifier, VT_STATISTICS) &&
            verifier.VerifyTable(statistics()) &&
            verifier.EndTable();
@@ -2156,9 +2156,9 @@ struct DictionaryPageHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_NUM_VALUES) &&
-           VerifyField<int8_t>(verifier, VT_ENCODING) &&
-           VerifyField<uint8_t>(verifier, VT_IS_SORTED) &&
+           VerifyField<int32_t>(verifier, VT_NUM_VALUES, sizeof(int32_t)) &&
+           VerifyField<int8_t>(verifier, VT_ENCODING, sizeof(int8_t)) &&
+           VerifyField<uint8_t>(verifier, VT_IS_SORTED, sizeof(uint8_t)) &&
            verifier.EndTable();
   }
 };
@@ -2237,13 +2237,13 @@ struct DataPageHeaderV2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_NUM_VALUES) &&
-           VerifyField<int32_t>(verifier, VT_NUM_NULLS) &&
-           VerifyField<int32_t>(verifier, VT_NUM_ROWS) &&
-           VerifyField<int8_t>(verifier, VT_ENCODING) &&
-           VerifyField<int32_t>(verifier, VT_DEFINITION_LEVELS_BYTE_LENGTH) &&
-           VerifyField<int32_t>(verifier, VT_REPETITION_LEVELS_BYTE_LENGTH) &&
-           VerifyField<uint8_t>(verifier, VT_IS_COMPRESSED) &&
+           VerifyField<int32_t>(verifier, VT_NUM_VALUES, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_NUM_NULLS, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_NUM_ROWS, sizeof(int32_t)) &&
+           VerifyField<int8_t>(verifier, VT_ENCODING, sizeof(int8_t)) &&
+           VerifyField<int32_t>(verifier, VT_DEFINITION_LEVELS_BYTE_LENGTH, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_REPETITION_LEVELS_BYTE_LENGTH, sizeof(int32_t)) &&
+           VerifyField<uint8_t>(verifier, VT_IS_COMPRESSED, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_STATISTICS) &&
            verifier.VerifyTable(statistics()) &&
            verifier.EndTable();
@@ -2444,14 +2444,14 @@ struct BloomFilterHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_NUM_BYTES) &&
-           VerifyField<uint8_t>(verifier, VT_ALGORITHM_TYPE) &&
+           VerifyField<int32_t>(verifier, VT_NUM_BYTES, sizeof(int32_t)) &&
+           VerifyField<uint8_t>(verifier, VT_ALGORITHM_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_ALGORITHM) &&
            VerifyBloomFilterAlgorithm(verifier, algorithm(), algorithm_type()) &&
-           VerifyField<uint8_t>(verifier, VT_HASH_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_HASH_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_HASH) &&
            VerifyBloomFilterHash(verifier, hash(), hash_type()) &&
-           VerifyField<uint8_t>(verifier, VT_COMPRESSION_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_COMPRESSION_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_COMPRESSION) &&
            VerifyBloomFilterCompression(verifier, compression(), compression_type()) &&
            verifier.EndTable();
@@ -2564,10 +2564,10 @@ struct PageHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_TYPE) &&
-           VerifyField<int32_t>(verifier, VT_UNCOMPRESSED_PAGE_SIZE) &&
-           VerifyField<int32_t>(verifier, VT_COMPRESSED_PAGE_SIZE) &&
-           VerifyField<int32_t>(verifier, VT_CRC) &&
+           VerifyField<int8_t>(verifier, VT_TYPE, sizeof(int8_t)) &&
+           VerifyField<int32_t>(verifier, VT_UNCOMPRESSED_PAGE_SIZE, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_COMPRESSED_PAGE_SIZE, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_CRC, sizeof(int32_t)) &&
            VerifyOffset(verifier, VT_DATA_PAGE_HEADER) &&
            verifier.VerifyTable(data_page_header()) &&
            VerifyOffset(verifier, VT_INDEX_PAGE_HEADER) &&
@@ -2724,9 +2724,9 @@ struct SortingColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_COLUMN_IDX) &&
-           VerifyField<uint8_t>(verifier, VT_DESCENDING) &&
-           VerifyField<uint8_t>(verifier, VT_NULLS_FIRST) &&
+           VerifyField<int32_t>(verifier, VT_COLUMN_IDX, sizeof(int32_t)) &&
+           VerifyField<uint8_t>(verifier, VT_DESCENDING, sizeof(uint8_t)) &&
+           VerifyField<uint8_t>(verifier, VT_NULLS_FIRST, sizeof(uint8_t)) &&
            verifier.EndTable();
   }
 };
@@ -2785,9 +2785,9 @@ struct PageEncodingStats FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_PAGE_TYPE) &&
-           VerifyField<int8_t>(verifier, VT_ENCODING) &&
-           VerifyField<int32_t>(verifier, VT_COUNT) &&
+           VerifyField<int8_t>(verifier, VT_PAGE_TYPE, sizeof(int8_t)) &&
+           VerifyField<int8_t>(verifier, VT_ENCODING, sizeof(int8_t)) &&
+           VerifyField<int32_t>(verifier, VT_COUNT, sizeof(int32_t)) &&
            verifier.EndTable();
   }
 };
@@ -2894,29 +2894,29 @@ struct ColumnMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_TYPE) &&
+           VerifyField<int8_t>(verifier, VT_TYPE, sizeof(int8_t)) &&
            VerifyOffset(verifier, VT_ENCODINGS) &&
            verifier.VerifyVector(encodings()) &&
            VerifyOffset(verifier, VT_PATH_IN_SCHEMA) &&
            verifier.VerifyVector(path_in_schema()) &&
            verifier.VerifyVectorOfStrings(path_in_schema()) &&
-           VerifyField<int8_t>(verifier, VT_CODEC) &&
-           VerifyField<int64_t>(verifier, VT_NUM_VALUES) &&
-           VerifyField<int64_t>(verifier, VT_TOTAL_UNCOMPRESSED_SIZE) &&
-           VerifyField<int64_t>(verifier, VT_TOTAL_COMPRESSED_SIZE) &&
+           VerifyField<int8_t>(verifier, VT_CODEC, sizeof(int8_t)) &&
+           VerifyField<int64_t>(verifier, VT_NUM_VALUES, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_TOTAL_UNCOMPRESSED_SIZE, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_TOTAL_COMPRESSED_SIZE, sizeof(int64_t)) &&
            VerifyOffset(verifier, VT_KEY_VALUE_METADATA) &&
            verifier.VerifyVector(key_value_metadata()) &&
            verifier.VerifyVectorOfTables(key_value_metadata()) &&
-           VerifyField<int64_t>(verifier, VT_DATA_PAGE_OFFSET) &&
-           VerifyField<int64_t>(verifier, VT_INDEX_PAGE_OFFSET) &&
-           VerifyField<int64_t>(verifier, VT_DICTIONARY_PAGE_OFFSET) &&
+           VerifyField<int64_t>(verifier, VT_DATA_PAGE_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_INDEX_PAGE_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_DICTIONARY_PAGE_OFFSET, sizeof(int64_t)) &&
            VerifyOffset(verifier, VT_STATISTICS) &&
            verifier.VerifyTable(statistics()) &&
            VerifyOffset(verifier, VT_ENCODING_STATS) &&
            verifier.VerifyVector(encoding_stats()) &&
            verifier.VerifyVectorOfTables(encoding_stats()) &&
-           VerifyField<int64_t>(verifier, VT_BLOOM_FILTER_OFFSET) &&
-           VerifyField<int32_t>(verifier, VT_SCHEMA_INDEX) &&
+           VerifyField<int64_t>(verifier, VT_BLOOM_FILTER_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int32_t>(verifier, VT_SCHEMA_INDEX, sizeof(int32_t)) &&
            verifier.EndTable();
   }
 };
@@ -3207,14 +3207,14 @@ struct ColumnChunk FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_FILE_PATH) &&
            verifier.VerifyString(file_path()) &&
-           VerifyField<int64_t>(verifier, VT_FILE_OFFSET) &&
+           VerifyField<int64_t>(verifier, VT_FILE_OFFSET, sizeof(int64_t)) &&
            VerifyOffset(verifier, VT_META_DATA) &&
            verifier.VerifyTable(meta_data()) &&
-           VerifyField<int64_t>(verifier, VT_OFFSET_INDEX_OFFSET) &&
-           VerifyField<int32_t>(verifier, VT_OFFSET_INDEX_LENGTH) &&
-           VerifyField<int64_t>(verifier, VT_COLUMN_INDEX_OFFSET) &&
-           VerifyField<int32_t>(verifier, VT_COLUMN_INDEX_LENGTH) &&
-           VerifyField<uint8_t>(verifier, VT_CRYPTO_METADATA_TYPE) &&
+           VerifyField<int64_t>(verifier, VT_OFFSET_INDEX_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int32_t>(verifier, VT_OFFSET_INDEX_LENGTH, sizeof(int32_t)) &&
+           VerifyField<int64_t>(verifier, VT_COLUMN_INDEX_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int32_t>(verifier, VT_COLUMN_INDEX_LENGTH, sizeof(int32_t)) &&
+           VerifyField<uint8_t>(verifier, VT_CRYPTO_METADATA_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_CRYPTO_METADATA) &&
            VerifyColumnCryptoMetadata(verifier, crypto_metadata(), crypto_metadata_type()) &&
            VerifyOffset(verifier, VT_ENCRYPTED_COLUMN_METADATA) &&
@@ -3367,14 +3367,14 @@ struct RowGroup FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_COLUMNS) &&
            verifier.VerifyVector(columns()) &&
            verifier.VerifyVectorOfTables(columns()) &&
-           VerifyField<int64_t>(verifier, VT_TOTAL_BYTE_SIZE) &&
-           VerifyField<int64_t>(verifier, VT_NUM_ROWS) &&
+           VerifyField<int64_t>(verifier, VT_TOTAL_BYTE_SIZE, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_NUM_ROWS, sizeof(int64_t)) &&
            VerifyOffset(verifier, VT_SORTING_COLUMNS) &&
            verifier.VerifyVector(sorting_columns()) &&
            verifier.VerifyVectorOfTables(sorting_columns()) &&
-           VerifyField<int64_t>(verifier, VT_FILE_OFFSET) &&
-           VerifyField<int64_t>(verifier, VT_TOTAL_COMPRESSED_SIZE) &&
-           VerifyField<int16_t>(verifier, VT_ORDINAL) &&
+           VerifyField<int64_t>(verifier, VT_FILE_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int64_t>(verifier, VT_TOTAL_COMPRESSED_SIZE, sizeof(int64_t)) &&
+           VerifyField<int16_t>(verifier, VT_ORDINAL, sizeof(int16_t)) &&
            verifier.EndTable();
   }
 };
@@ -3504,9 +3504,9 @@ struct PageLocation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int64_t>(verifier, VT_OFFSET) &&
-           VerifyField<int32_t>(verifier, VT_COMPRESSED_PAGE_SIZE) &&
-           VerifyField<int32_t>(verifier, VT_FIRST_ROW_INDEX) &&
+           VerifyField<int64_t>(verifier, VT_OFFSET, sizeof(int64_t)) &&
+           VerifyField<int32_t>(verifier, VT_COMPRESSED_PAGE_SIZE, sizeof(int32_t)) &&
+           VerifyField<int32_t>(verifier, VT_FIRST_ROW_INDEX, sizeof(int32_t)) &&
            verifier.EndTable();
   }
 };
@@ -3633,7 +3633,7 @@ struct ColumnIndex FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_MAX_VALUES) &&
            verifier.VerifyVector(max_values()) &&
            verifier.VerifyVectorOfTables(max_values()) &&
-           VerifyField<int8_t>(verifier, VT_BOUNDARY_ORDER) &&
+           VerifyField<int8_t>(verifier, VT_BOUNDARY_ORDER, sizeof(int8_t)) &&
            VerifyOffset(verifier, VT_NULL_COUNTS) &&
            verifier.VerifyVector(null_counts()) &&
            verifier.EndTable();
@@ -3728,7 +3728,7 @@ struct AesGcmV1 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(aad_prefix()) &&
            VerifyOffset(verifier, VT_AAD_FILE_UNIQUE) &&
            verifier.VerifyVector(aad_file_unique()) &&
-           VerifyField<uint8_t>(verifier, VT_SUPPLY_AAD_PREFIX) &&
+           VerifyField<uint8_t>(verifier, VT_SUPPLY_AAD_PREFIX, sizeof(uint8_t)) &&
            verifier.EndTable();
   }
 };
@@ -3805,7 +3805,7 @@ struct AesGcmCtrV1 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(aad_prefix()) &&
            VerifyOffset(verifier, VT_AAD_FILE_UNIQUE) &&
            verifier.VerifyVector(aad_file_unique()) &&
-           VerifyField<uint8_t>(verifier, VT_SUPPLY_AAD_PREFIX) &&
+           VerifyField<uint8_t>(verifier, VT_SUPPLY_AAD_PREFIX, sizeof(uint8_t)) &&
            verifier.EndTable();
   }
 };
@@ -3909,11 +3909,11 @@ struct FileMetaData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_VERSION) &&
+           VerifyField<int32_t>(verifier, VT_VERSION, sizeof(int32_t)) &&
            VerifyOffset(verifier, VT_SCHEMA) &&
            verifier.VerifyVector(schema()) &&
            verifier.VerifyVectorOfTables(schema()) &&
-           VerifyField<int64_t>(verifier, VT_NUM_ROWS) &&
+           VerifyField<int64_t>(verifier, VT_NUM_ROWS, sizeof(int64_t)) &&
            VerifyOffset(verifier, VT_ROW_GROUPS) &&
            verifier.VerifyVector(row_groups()) &&
            verifier.VerifyVectorOfTables(row_groups()) &&
@@ -3922,7 +3922,7 @@ struct FileMetaData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(key_value_metadata()) &&
            VerifyOffset(verifier, VT_CREATED_BY) &&
            verifier.VerifyString(created_by()) &&
-           VerifyField<uint8_t>(verifier, VT_ENCRYPTION_ALGORITHM_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_ENCRYPTION_ALGORITHM_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_ENCRYPTION_ALGORITHM) &&
            VerifyEncryptionAlgorithm(verifier, encryption_algorithm(), encryption_algorithm_type()) &&
            VerifyOffset(verifier, VT_FOOTER_SIGNING_KEY_METADATA) &&
@@ -4059,7 +4059,7 @@ struct FileCryptoMetaData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_ENCRYPTION_ALGORITHM_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_ENCRYPTION_ALGORITHM_TYPE, sizeof(uint8_t)) &&
            VerifyOffset(verifier, VT_ENCRYPTION_ALGORITHM) &&
            VerifyEncryptionAlgorithm(verifier, encryption_algorithm(), encryption_algorithm_type()) &&
            VerifyOffset(verifier, VT_KEY_METADATA) &&
