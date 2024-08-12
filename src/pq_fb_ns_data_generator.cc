@@ -4,6 +4,9 @@
 #include <memory>
 #include <fstream>
 #include <stdexcept>
+#include <cstring>
+#include <zlib.h>
+#include <chrono>
 
 #include <arrow/io/file.h>
 #include <arrow/io/memory.h>
@@ -61,7 +64,7 @@ private:
         // Create schema
         std::vector<std::shared_ptr<arrow::Field>> fields;
         for (int i = 0; i < num_columns_; ++i) {
-            fields.push_back(arrow::field("column_" + std::to_string(i), arrow::float32()));
+            fields.push_back(arrow::field("column_" + std::to_string(i), arrow::float64()));
         }
         auto schema = arrow::schema(fields);
 
@@ -93,7 +96,7 @@ private:
 
         PARQUET_THROW_NOT_OK(parquet::arrow::WriteTable(*table, arrow::default_memory_pool(), outfile, num_rows_, properties));
     }
-
+    
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<parquet2::SchemaElement>>>
     ConvertSchema(const parquet::SchemaDescriptor* schema, flatbuffers::FlatBufferBuilder& builder) {
         std::vector<flatbuffers::Offset<parquet2::SchemaElement>> elements;
@@ -201,13 +204,13 @@ std::string AppendExtension(std::string thrift, std::string ext) {
 void GenerateTestFiles() {
     std::vector<std::pair<int, int>> file_specs = {
         {3000, 10000},
-        {5000, 10000}
+        {2000, 10000}
     };
 
     for (const auto& spec : file_specs) {
         int num_columns = spec.first;
         int num_rows = spec.second;
-        std::string filename = "benchmark_float32_" + std::to_string(num_columns) + "cols.parquet";
+        std::string filename = "benchmark_float64_" + std::to_string(num_columns) + "cols.parquet";
         if (std::ifstream(filename)) {
             std::cout << "File " << filename << " already exists. Skipping..." << std::endl;
             continue;
@@ -225,8 +228,8 @@ void GenerateTestFiles() {
 
 static void BM_ParseThrift(benchmark::State& state) {
     std::string filename = state.range(0) == 3000 ? 
-        "benchmark_float32_3000cols.parquet" : 
-        "benchmark_float32_5000cols.parquet";
+        "benchmark_float64_3000cols.parquet" : 
+        "benchmark_float64_2000cols.parquet";
     
     auto file = OpenReadableFile(filename);
     
@@ -235,12 +238,12 @@ static void BM_ParseThrift(benchmark::State& state) {
         benchmark::DoNotOptimize(metadata);
     }
 }
-BENCHMARK(BM_ParseThrift)->Arg(3000)->Arg(5000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_ParseThrift)->Arg(3000)->Arg(2000)->Unit(benchmark::kMillisecond);
 
 static void BM_EncodeFlatbuffer(benchmark::State& state) {
     std::string filename = state.range(0) == 3000 ? 
-        "benchmark_float32_3000cols.parquet" : 
-        "benchmark_float32_5000cols.parquet";
+        "benchmark_float64_3000cols.parquet" : 
+        "benchmark_float64_2000cols.parquet";
     
     std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::OpenFile(filename);
     std::shared_ptr<parquet::FileMetaData> metadata = reader->metadata();
@@ -259,12 +262,12 @@ static void BM_EncodeFlatbuffer(benchmark::State& state) {
         }
     }
 }
-BENCHMARK(BM_EncodeFlatbuffer)->Arg(3000)->Arg(5000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_EncodeFlatbuffer)->Arg(3000)->Arg(2000)->Unit(benchmark::kMillisecond);
 
 static void BM_ParseFlatbuffer(benchmark::State& state) {
     std::string filename = state.range(0) == 3000 ? 
-        "benchmark_float32_3000cols.parquet" : 
-        "benchmark_float32_5000cols.parquet";
+        "benchmark_float64_3000cols.parquet" : 
+        "benchmark_float64_2000cols.parquet";
     
     std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::OpenFile(filename);
     std::shared_ptr<parquet::FileMetaData> metadata = reader->metadata();
@@ -280,35 +283,88 @@ static void BM_ParseFlatbuffer(benchmark::State& state) {
         benchmark::DoNotOptimize(fmd->version());
     }
 }
-BENCHMARK(BM_ParseFlatbuffer)->Arg(3000)->Arg(5000);
+BENCHMARK(BM_ParseFlatbuffer)->Arg(3000)->Arg(2000);
 
 static void BM_ParseWithExtension(benchmark::State& state) {
     std::string filename = state.range(0) == 3000 ? 
-        "benchmark_float32_3000cols.parquet" : 
-        "benchmark_float32_5000cols.parquet";
+        "benchmark_float64_3000cols.parquet" : 
+        "benchmark_float64_2000cols.parquet";
     
+    // Read the original Parquet file
     std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::OpenFile(filename);
-    std::shared_ptr<parquet::FileMetaData> metadata = reader->metadata();
+    std::shared_ptr<parquet::FileMetaData> parquet_metadata = reader->metadata();
+    
+    // Serialize the original metadata to Thrift
+    std::shared_ptr<arrow::io::BufferOutputStream> out_stream;
+    PARQUET_ASSIGN_OR_THROW(out_stream, arrow::io::BufferOutputStream::Create());
+    parquet_metadata->WriteTo(out_stream.get());
+    
+    std::shared_ptr<arrow::Buffer> buffer;
+    PARQUET_ASSIGN_OR_THROW(buffer, out_stream->Finish());
+    std::string serialized_metadata = buffer->ToString();
 
+    // Create FlatBuffer
     ParquetFlatbufferWriter writer(filename, state.range(0), 10000);
-    
     flatbuffers::FlatBufferBuilder builder;
-    auto flatbuffer_metadata = writer.ConvertToFlatbuffer(metadata, builder);
+    auto flatbuffer_metadata = writer.ConvertToFlatbuffer(parquet_metadata, builder);
     builder.Finish(flatbuffer_metadata);
+
+    // Combine Thrift and FlatBuffer metadata
+    std::string combined_metadata = serialized_metadata;
+    std::string flatbuffer_data(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize());
+    combined_metadata += flatbuffer_data;
     
-    auto file = OpenReadableFile(filename);
-    PARQUET_ASSIGN_OR_THROW(auto buffer, file->Read(file->GetSize().ValueOrDie()));
-    std::string combined_footer = AppendExtension(buffer->ToString(), 
-        std::string(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize()));
-    
-    auto combined_file = std::make_shared<arrow::io::BufferReader>(combined_footer);
-    
+    // Add separator
+    combined_metadata += "FBUF";
+
+    // Add metadata size (4 bytes) and magic bytes
+    int32_t metadata_size = combined_metadata.size();
+    combined_metadata.append(reinterpret_cast<const char*>(&metadata_size), 4);
+    combined_metadata += "PAR1";
+
+    double total_thrift_parse_time = 0.0;
+    double total_flatbuffer_parse_time = 0.0;
+    int iterations = 0;
+
     for (auto _ : state) {
-        std::shared_ptr<parquet::FileMetaData> md = parquet::ReadMetaData(combined_file);
-        benchmark::DoNotOptimize(md);
+        try {
+            auto buffer = std::make_shared<arrow::Buffer>(combined_metadata);
+            auto file = std::make_shared<arrow::io::BufferReader>(buffer);
+
+            // Measure Thrift parsing time
+            auto start_thrift = std::chrono::high_resolution_clock::now();
+            std::shared_ptr<parquet::FileMetaData> md = parquet::ReadMetaData(file);
+            auto end_thrift = std::chrono::high_resolution_clock::now();
+            total_thrift_parse_time += std::chrono::duration<double, std::milli>(end_thrift - start_thrift).count();
+
+            benchmark::DoNotOptimize(md);
+
+            // Measure FlatBuffer parsing time
+            auto start_flatbuffer = std::chrono::high_resolution_clock::now();
+            auto fmd = parquet2::GetFileMetaData(flatbuffer_data.data());
+            auto end_flatbuffer = std::chrono::high_resolution_clock::now();
+            total_flatbuffer_parse_time += std::chrono::duration<double, std::milli>(end_flatbuffer - start_flatbuffer).count();
+
+            benchmark::DoNotOptimize(fmd);
+
+            iterations++;
+        } catch (const std::exception& e) {
+            std::cerr << "Error parsing combined metadata: " << e.what() << std::endl;
+            state.SkipWithError("Parsing failed");
+            break;
+        }
+    }
+
+    // Only print results once, after all iterations
+    if (state.iterations() == iterations) {
+        std::cout << "Original metadata size: " << serialized_metadata.size()
+                  << ", Combined metadata size: " << combined_metadata.size()
+                  << ", FlatBuffer size: " << builder.GetSize() << std::endl;
+        std::cout << "Average Thrift parse time: " << (total_thrift_parse_time / iterations) << " ms" << std::endl;
+        std::cout << "Average FlatBuffer parse time: " << (total_flatbuffer_parse_time / iterations) << " ms" << std::endl;
     }
 }
-BENCHMARK(BM_ParseWithExtension)->Arg(3000)->Arg(5000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_ParseWithExtension)->Arg(3000)->Arg(2000)->Unit(benchmark::kMillisecond);
 
 int main(int argc, char** argv) {
     try {
