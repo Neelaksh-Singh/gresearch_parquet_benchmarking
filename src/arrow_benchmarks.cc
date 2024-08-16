@@ -14,7 +14,8 @@ BenchmarkResult BenchmarkMetadata(const std::string& filename) {
     PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename));
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader);
+    auto status = parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader);
+    assert(status.ok());
 
     result.decode_time = std::chrono::duration<double, std::milli>(
         std::chrono::high_resolution_clock::now() - start).count();

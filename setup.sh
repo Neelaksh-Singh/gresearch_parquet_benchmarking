@@ -32,6 +32,14 @@ mkdir -p "$PROJECT_ROOT/temp"
 # Create the build directory if it doesn't exist
 mkdir -p "$PROJECT_ROOT/build"
 
+# Generate flatbuffer code
+# Note that vcpkg.json must be set to use the correct version of flatbuffers
+# See src/flatbuff_ns.fbs for details.
+cd ./src
+../vcpkg_installed/x64-linux/tools/flatbuffers/flatc --cpp -o . flatbuff_ns.fbs
+cd ..
+
+
 # Run CMake to configure the project
 cmake -B "$PROJECT_ROOT/build" -S "$PROJECT_ROOT" -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TOOLCHAIN_FILE"
 

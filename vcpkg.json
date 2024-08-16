@@ -2,11 +2,18 @@
   "name": "arrow-benchmarks",
   "version-string": "0.1.0",
   "dependencies": [
-      "arrow",
-      "parquet",
-      "snappy",
-      "abseil",
-      "flatbuffers",
-      "benchmark"
-  ]
+    "arrow",
+    "parquet",
+    "snappy",
+    "abseil",
+    "benchmark",
+    "flatbuffers"
+  ],
+  "overrides": [
+    {
+      "name": "flatbuffers",
+      "version": "23.5.26"
+    }
+  ],
+  "builtin-baseline": "1318ab14aae14db20085441cd71366891a9c9d0c"
 }
