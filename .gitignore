@@ -41,3 +41,5 @@ temp/
 *.png
 *.csv
 .ipynb_checkpoints/
+*.json
+*flatbuff_ns_generated.h

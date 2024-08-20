@@ -176,6 +176,30 @@ private:
     int num_rows_;
 };
 
+void SetDefaultCounters(benchmark::State& state) {
+    state.counters["OriginalMetadataSize"] = 0;
+    state.counters["CombinedMetadataSize"] = 0;
+    state.counters["FlatBufferSize"] = 0;
+}
+
+void SetMetadataCounter(benchmark::State& state, size_t metadata_size) {
+    state.counters["MetadataSize"] = metadata_size;
+}
+//Struct for Storing benchmark data
+struct BenchmarkResult {
+    int num_columns;
+    double thrift_parse_time;
+    double flatbuffer_encode_time;
+    double flatbuffer_parse_time;
+    double combined_parse_time;
+    size_t original_metadata_size;
+    size_t combined_metadata_size;
+    size_t flatbuffer_size;
+    double thrift_parse_time_avg;
+    double flatbuffer_parse_time_avg;
+};
+std::map<int, BenchmarkResult> benchmark_results;
+
 std::shared_ptr<arrow::io::RandomAccessFile> OpenReadableFile(const std::string& filename) {
     PARQUET_ASSIGN_OR_THROW(auto file, arrow::io::ReadableFile::Open(filename));
     return file;
@@ -233,12 +257,22 @@ static void BM_ParseThrift(benchmark::State& state) {
     
     auto file = OpenReadableFile(filename);
     
+    double total_time = 0;
     for (auto _ : state) {
+        auto start = std::chrono::high_resolution_clock::now();
         std::shared_ptr<parquet::FileMetaData> metadata = parquet::ReadMetaData(file);
+        auto end = std::chrono::high_resolution_clock::now();
+        total_time += std::chrono::duration<double, std::milli>(end - start).count();
         benchmark::DoNotOptimize(metadata);
     }
+    total_time *=  state.iterations();
+    benchmark_results[state.range(0)].num_columns = state.range(0);
+    benchmark_results[state.range(0)].thrift_parse_time = total_time;
+    benchmark_results[state.range(0)].thrift_parse_time_avg = total_time / state.iterations();
+    SetDefaultCounters(state);
+    // state.counters["OriginalMetadataSize"] = metadata.size();
 }
-BENCHMARK(BM_ParseThrift)->Arg(3000)->Arg(2000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_ParseThrift)->Arg(3000)->Arg(2000);
 
 static void BM_EncodeFlatbuffer(benchmark::State& state) {
     std::string filename = state.range(0) == 3000 ? 
@@ -250,19 +284,30 @@ static void BM_EncodeFlatbuffer(benchmark::State& state) {
 
     ParquetFlatbufferWriter writer(filename, state.range(0), 10000);
 
+    double total_time = 0;
+    size_t flatbuffer_size = 0;
     for (auto _ : state) {
         try {
+            auto start = std::chrono::high_resolution_clock::now();
             flatbuffers::FlatBufferBuilder builder;
             auto flatbuffer_metadata = writer.ConvertToFlatbuffer(metadata, builder);
             builder.Finish(flatbuffer_metadata);
+            auto end = std::chrono::high_resolution_clock::now();
+            total_time += std::chrono::duration<double, std::milli>(end - start).count();
+            flatbuffer_size = builder.GetSize();
         } catch (const std::exception& e) {
             std::cerr << "Error in BM_EncodeFlatbuffer: " << e.what() << std::endl;
             state.SkipWithError("FlatBuffer encoding failed");
             break;
         }
     }
+    total_time *=  state.iterations();
+    benchmark_results[state.range(0)].flatbuffer_encode_time = total_time;
+    benchmark_results[state.range(0)].flatbuffer_size = flatbuffer_size;
+    SetDefaultCounters(state);
+    state.counters["FlatBufferSize"] = flatbuffer_size;
 }
-BENCHMARK(BM_EncodeFlatbuffer)->Arg(3000)->Arg(2000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_EncodeFlatbuffer)->Arg(3000)->Arg(2000);
 
 static void BM_ParseFlatbuffer(benchmark::State& state) {
     std::string filename = state.range(0) == 3000 ? 
@@ -277,11 +322,18 @@ static void BM_ParseFlatbuffer(benchmark::State& state) {
     flatbuffers::FlatBufferBuilder builder;
     auto flatbuffer_metadata = writer.ConvertToFlatbuffer(metadata, builder);
     builder.Finish(flatbuffer_metadata);
-
+    double total_time = 0;
     for (auto _ : state) {
+        auto start = std::chrono::high_resolution_clock::now();
         auto fmd = parquet2::GetFileMetaData(builder.GetBufferPointer());
+        auto end = std::chrono::high_resolution_clock::now();
+        total_time += std::chrono::duration<double, std::milli>(end - start).count();
         benchmark::DoNotOptimize(fmd->version());
     }
+    total_time *=  state.iterations();
+    benchmark_results[state.range(0)].flatbuffer_parse_time = total_time;
+    benchmark_results[state.range(0)].flatbuffer_parse_time_avg = total_time / state.iterations();
+    SetDefaultCounters(state);
 }
 BENCHMARK(BM_ParseFlatbuffer)->Arg(3000)->Arg(2000);
 
@@ -322,8 +374,7 @@ static void BM_ParseWithExtension(benchmark::State& state) {
     combined_metadata.append(reinterpret_cast<const char*>(&metadata_size), 4);
     combined_metadata += "PAR1";
 
-    double total_thrift_parse_time = 0.0;
-    double total_flatbuffer_parse_time = 0.0;
+    double total_combined_parse_time = 0.0;
     int iterations = 0;
 
     for (auto _ : state) {
@@ -331,23 +382,20 @@ static void BM_ParseWithExtension(benchmark::State& state) {
             auto buffer = std::make_shared<arrow::Buffer>(combined_metadata);
             auto file = std::make_shared<arrow::io::BufferReader>(buffer);
 
-            // Measure Thrift parsing time
-            auto start_thrift = std::chrono::high_resolution_clock::now();
+            auto start = std::chrono::high_resolution_clock::now();
+            
+            // Parse Thrift metadata
             std::shared_ptr<parquet::FileMetaData> md = parquet::ReadMetaData(file);
-            auto end_thrift = std::chrono::high_resolution_clock::now();
-            total_thrift_parse_time += std::chrono::duration<double, std::milli>(end_thrift - start_thrift).count();
-
             benchmark::DoNotOptimize(md);
 
-            // Measure FlatBuffer parsing time
-            auto start_flatbuffer = std::chrono::high_resolution_clock::now();
+            // Parse FlatBuffer metadata
             auto fmd = parquet2::GetFileMetaData(flatbuffer_data.data());
-            auto end_flatbuffer = std::chrono::high_resolution_clock::now();
-            total_flatbuffer_parse_time += std::chrono::duration<double, std::milli>(end_flatbuffer - start_flatbuffer).count();
-
             benchmark::DoNotOptimize(fmd);
-
+            
+            auto end = std::chrono::high_resolution_clock::now();
+            total_combined_parse_time += std::chrono::duration<double, std::nano>(end - start).count();
             iterations++;
+
         } catch (const std::exception& e) {
             std::cerr << "Error parsing combined metadata: " << e.what() << std::endl;
             state.SkipWithError("Parsing failed");
@@ -356,15 +404,115 @@ static void BM_ParseWithExtension(benchmark::State& state) {
     }
 
     // Only print results once, after all iterations
-    if (state.iterations() == iterations) {
-        std::cout << "Original metadata size: " << serialized_metadata.size()
-                  << ", Combined metadata size: " << combined_metadata.size()
-                  << ", FlatBuffer size: " << builder.GetSize() << std::endl;
-        std::cout << "Average Thrift parse time: " << (total_thrift_parse_time / iterations) << " ms" << std::endl;
-        std::cout << "Average FlatBuffer parse time: " << (total_flatbuffer_parse_time / iterations) << " ms" << std::endl;
+    // if (state.iterations() == iterations) {
+    //     std::cout << "Columns: " << state.range(0)
+    //               << ", Original metadata size: " << serialized_metadata.size()
+    //               << ", Combined metadata size: " << combined_metadata.size()
+    //               << ", FlatBuffer size: " << builder.GetSize() << std::endl;
+    //     std::cout << "Average combined parse time: " << (total_combined_parse_time / iterations / 1e6) << " ms" << std::endl;
+    // }
+
+    // Update the benchmark_results map
+    benchmark_results[state.range(0)].num_columns = state.range(0);
+    benchmark_results[state.range(0)].combined_parse_time = total_combined_parse_time / iterations;
+    benchmark_results[state.range(0)].original_metadata_size = serialized_metadata.size();
+    benchmark_results[state.range(0)].combined_metadata_size = combined_metadata.size();
+    benchmark_results[state.range(0)].flatbuffer_size = flatbuffer_data.size();
+    SetDefaultCounters(state);
+    state.counters["OriginalMetadataSize"] = serialized_metadata.size();
+    state.counters["CombinedMetadataSize"] = combined_metadata.size();
+    state.counters["FlatBufferSize"] = builder.GetSize();
+}
+BENCHMARK(BM_ParseWithExtension)->Arg(3000)->Arg(2000);
+
+static void BM_ReadPartialData(benchmark::State& state) {
+    std::string filename = state.range(0) == 3000 ? 
+        "benchmark_float64_3000cols.parquet" : 
+        "benchmark_float64_2000cols.parquet";
+    
+    // Read the original Parquet file
+    std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::OpenFile(filename);
+    std::shared_ptr<parquet::FileMetaData> parquet_metadata = reader->metadata();
+    
+    // Serialize the original metadata to Thrift
+    std::shared_ptr<arrow::io::BufferOutputStream> out_stream;
+    PARQUET_ASSIGN_OR_THROW(out_stream, arrow::io::BufferOutputStream::Create());
+    parquet_metadata->WriteTo(out_stream.get());
+    
+    std::shared_ptr<arrow::Buffer> buffer;
+    PARQUET_ASSIGN_OR_THROW(buffer, out_stream->Finish());
+    std::string serialized_metadata = buffer->ToString();
+
+    // Create FlatBuffer
+    ParquetFlatbufferWriter writer(filename, state.range(0), 10000);
+    flatbuffers::FlatBufferBuilder builder;
+    auto flatbuffer_metadata = writer.ConvertToFlatbuffer(parquet_metadata, builder);
+    builder.Finish(flatbuffer_metadata);
+    std::string flatbuffer_data(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize());
+
+    int subset_size = state.range(1);  // New parameter for subset size
+
+    double thrift_time = 0;
+    double flatbuffer_time = 0;
+
+    for (auto _ : state) {
+        // Read partial data from Thrift
+        auto start_thrift = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < subset_size && i < parquet_metadata->num_columns(); ++i) {
+            std::string column_name = parquet_metadata->schema()->Column(i)->name();
+            benchmark::DoNotOptimize(column_name);
+        }
+        auto end_thrift = std::chrono::high_resolution_clock::now();
+        auto thrift_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_thrift - start_thrift);
+        thrift_time += thrift_duration.count();
+
+        // Read partial data from FlatBuffer
+        auto start_flatbuffer = std::chrono::high_resolution_clock::now();
+        auto fmd = parquet2::GetFileMetaData(flatbuffer_data.data());
+        for (int i = 0; i < subset_size && i < fmd->schema()->size(); ++i) {
+            std::string column_name = fmd->schema()->Get(i)->name()->str();
+            benchmark::DoNotOptimize(column_name);
+        }
+        auto end_flatbuffer = std::chrono::high_resolution_clock::now();
+        auto flatbuffer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_flatbuffer - start_flatbuffer);
+        flatbuffer_time += flatbuffer_duration.count();
+    }
+
+    state.counters["ThriftTime"] = benchmark::Counter(thrift_time / state.iterations(), benchmark::Counter::kAvgThreads);
+    state.counters["FlatBufferTime"] = benchmark::Counter(flatbuffer_time / state.iterations(), benchmark::Counter::kAvgThreads);
+    state.counters["ThriftSize"] = serialized_metadata.size();
+    state.counters["FlatBufferSize"] = flatbuffer_data.size();
+    state.counters["NumColumns"] = state.range(0);
+    state.counters["SubsetSize"] = subset_size;
+}
+
+BENCHMARK(BM_ReadPartialData)
+    ->Args({3000, 10})   // 3000 columns, read 10
+    ->Args({3000, 100})  // 3000 columns, read 100
+    ->Args({3000, 1000}) // 3000 columns, read 1000
+    ->Args({3000, 3000}) // 3000 columns, read all
+    ->Args({2000, 10})   // 2000 columns, read 10
+    ->Args({2000, 100})  // 2000 columns, read 100
+    ->Args({2000, 1000}) // 2000 columns, read 1000
+    ->Args({2000, 2000}) // 2000 columns, read all
+    ->Unit(benchmark::kNanosecond);
+
+void WriteResultsToCSV(const std::string& filename) {
+    std::ofstream file(filename);
+    file << "NumColumns,ThriftParseTimeNs,FlatbufferEncodeTimeNs,FlatbufferParseTimeNs,CombinedParseTimeNs,OriginalMetadataSize,CombinedMetadataSize,FlatbufferSize,ThriftParseTimeAvgMs,FlatbufferParseTimeAvgMs\n";
+    for (const auto& [num_columns, result] : benchmark_results) {
+        file << result.num_columns << ","
+             << result.thrift_parse_time << ","
+             << result.flatbuffer_encode_time << ","
+             << result.flatbuffer_parse_time << ","
+             << result.combined_parse_time << ","
+             << result.original_metadata_size << ","
+             << result.combined_metadata_size << ","
+             << result.flatbuffer_size << ","
+             << (result.thrift_parse_time_avg * 1e-6) << ","
+             << (result.flatbuffer_parse_time_avg * 1e-6) << "\n";
     }
 }
-BENCHMARK(BM_ParseWithExtension)->Arg(3000)->Arg(2000)->Unit(benchmark::kMillisecond);
 
 int main(int argc, char** argv) {
     try {
@@ -383,5 +531,8 @@ int main(int argc, char** argv) {
         return 1;
     }
     ::benchmark::Shutdown();
+
+    // WriteResultsToCSV("benchmark_flatbuffers.csv");
+
     return 0;
 }
