@@ -430,72 +430,209 @@ static void BM_ReadPartialData(benchmark::State& state) {
         "benchmark_float64_3000cols.parquet" : 
         "benchmark_float64_2000cols.parquet";
     
-    // Read the original Parquet file
-    std::unique_ptr<parquet::ParquetFileReader> reader = parquet::ParquetFileReader::OpenFile(filename);
-    std::shared_ptr<parquet::FileMetaData> parquet_metadata = reader->metadata();
-    
-    // Serialize the original metadata to Thrift
-    std::shared_ptr<arrow::io::BufferOutputStream> out_stream;
-    PARQUET_ASSIGN_OR_THROW(out_stream, arrow::io::BufferOutputStream::Create());
-    parquet_metadata->WriteTo(out_stream.get());
-    
-    std::shared_ptr<arrow::Buffer> buffer;
-    PARQUET_ASSIGN_OR_THROW(buffer, out_stream->Finish());
-    std::string serialized_metadata = buffer->ToString();
+    auto file = OpenReadableFile(filename);
 
-    // Create FlatBuffer
-    ParquetFlatbufferWriter writer(filename, state.range(0), 10000);
-    flatbuffers::FlatBufferBuilder builder;
-    auto flatbuffer_metadata = writer.ConvertToFlatbuffer(parquet_metadata, builder);
-    builder.Finish(flatbuffer_metadata);
-    std::string flatbuffer_data(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize());
-
-    int subset_size = state.range(1);  // New parameter for subset size
+    int subset_size = state.range(1);  // Parameter for subset size
+    bool random_access = state.range(2) == 1;  // Parameter for random access
 
     double thrift_time = 0;
     double flatbuffer_time = 0;
+    size_t thrift_size = 0;
+    size_t flatbuffer_size = 0;
+
+    std::vector<std::string> thrift_columns;
+    std::vector<std::string> flatbuffer_columns;
+
+    // Create a vector of indices for random access
+    std::vector<int> indices(state.range(0));
+    std::iota(indices.begin(), indices.end(), 0);
+    std::random_device rd;
+    std::mt19937 g(rd());
 
     for (auto _ : state) {
-        // Read partial data from Thrift
+        if (random_access) {
+            std::shuffle(indices.begin(), indices.end(), g);
+        }
+
+        // Thrift decoding and partial read
         auto start_thrift = std::chrono::high_resolution_clock::now();
-        for (int i = 0; i < subset_size && i < parquet_metadata->num_columns(); ++i) {
-            std::string column_name = parquet_metadata->schema()->Column(i)->name();
+        
+        // Use the same Thrift decoding method as in BM_ParseThrift
+        std::shared_ptr<parquet::FileMetaData> metadata = parquet::ReadMetaData(file);
+        
+        // Measure Thrift size
+        std::shared_ptr<arrow::io::BufferOutputStream> out_stream;
+        PARQUET_ASSIGN_OR_THROW(out_stream, arrow::io::BufferOutputStream::Create());
+        metadata->WriteTo(out_stream.get());
+        std::shared_ptr<arrow::Buffer> buffer;
+        PARQUET_ASSIGN_OR_THROW(buffer, out_stream->Finish());
+        thrift_size = buffer->size();
+
+        for (int i = 0; i < subset_size && i < metadata->num_columns(); ++i) {
+            int idx = random_access ? indices[i] : i;
+            std::string column_name = metadata->schema()->Column(idx)->name();
+            thrift_columns.push_back(column_name);
             benchmark::DoNotOptimize(column_name);
         }
         auto end_thrift = std::chrono::high_resolution_clock::now();
         auto thrift_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_thrift - start_thrift);
         thrift_time += thrift_duration.count();
 
-        // Read partial data from FlatBuffer
+        // FlatBuffer parsing and partial read
         auto start_flatbuffer = std::chrono::high_resolution_clock::now();
-        auto fmd = parquet2::GetFileMetaData(flatbuffer_data.data());
+        ParquetFlatbufferWriter writer(filename, state.range(0), 10000);
+        flatbuffers::FlatBufferBuilder builder;
+        auto flatbuffer_metadata = writer.ConvertToFlatbuffer(metadata, builder);
+        builder.Finish(flatbuffer_metadata);
+        flatbuffer_size = builder.GetSize();
+        auto fmd = parquet2::GetFileMetaData(builder.GetBufferPointer());
         for (int i = 0; i < subset_size && i < fmd->schema()->size(); ++i) {
-            std::string column_name = fmd->schema()->Get(i)->name()->str();
+            int idx = random_access ? indices[i] : i;
+            std::string column_name = fmd->schema()->Get(idx)->name()->str();
+            flatbuffer_columns.push_back(column_name);
             benchmark::DoNotOptimize(column_name);
         }
         auto end_flatbuffer = std::chrono::high_resolution_clock::now();
         auto flatbuffer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_flatbuffer - start_flatbuffer);
         flatbuffer_time += flatbuffer_duration.count();
     }
-
+    assert(thrift_columns == flatbuffer_columns);
     state.counters["ThriftTime"] = benchmark::Counter(thrift_time / state.iterations(), benchmark::Counter::kAvgThreads);
     state.counters["FlatBufferTime"] = benchmark::Counter(flatbuffer_time / state.iterations(), benchmark::Counter::kAvgThreads);
-    state.counters["ThriftSize"] = serialized_metadata.size();
-    state.counters["FlatBufferSize"] = flatbuffer_data.size();
+    state.counters["ThriftSize"] = thrift_size;
+    state.counters["FlatBufferSize"] = flatbuffer_size;
     state.counters["NumColumns"] = state.range(0);
     state.counters["SubsetSize"] = subset_size;
+    state.counters["RandomAccess"] = random_access ? 1 : 0;
 }
 
+// BENCHMARK calls remain the same
 BENCHMARK(BM_ReadPartialData)
-    ->Args({3000, 10})   // 3000 columns, read 10
-    ->Args({3000, 100})  // 3000 columns, read 100
-    ->Args({3000, 1000}) // 3000 columns, read 1000
-    ->Args({3000, 3000}) // 3000 columns, read all
-    ->Args({2000, 10})   // 2000 columns, read 10
-    ->Args({2000, 100})  // 2000 columns, read 100
-    ->Args({2000, 1000}) // 2000 columns, read 1000
-    ->Args({2000, 2000}) // 2000 columns, read all
+    ->Args({3000, 10, 0})   // 3000 columns, read 10, sequential
+    ->Args({3000, 100, 0})  // 3000 columns, read 100, sequential
+    ->Args({3000, 1000, 0}) // 3000 columns, read 1000, sequential
+    ->Args({3000, 3000, 0}) // 3000 columns, read all, sequential
+    ->Args({3000, 10, 1})   // 3000 columns, read 10, random
+    ->Args({3000, 100, 1})  // 3000 columns, read 100, random
+    ->Args({3000, 1000, 1}) // 3000 columns, read 1000, random
+    ->Args({3000, 3000, 1}) // 3000 columns, read all, random
+    ->Args({2000, 10, 0})   // 2000 columns, read 10, sequential
+    ->Args({2000, 100, 0})  // 2000 columns, read 100, sequential
+    ->Args({2000, 1000, 0}) // 2000 columns, read 1000, sequential
+    ->Args({2000, 2000, 0}) // 2000 columns, read all, sequential
+    ->Args({2000, 10, 1})   // 2000 columns, read 10, random
+    ->Args({2000, 100, 1})  // 2000 columns, read 100, random
+    ->Args({2000, 1000, 1}) // 2000 columns, read 1000, random
+    ->Args({2000, 2000, 1}) // 2000 columns, read all, random
     ->Unit(benchmark::kNanosecond);
+
+// static void BM_ReadPartialData(benchmark::State& state) {
+//     // Parameters
+//     int num_columns = state.range(0);
+//     int num_row_groups = state.range(1);
+//     int subset_size = state.range(2);
+//     bool random_access = state.range(3) == 1;
+
+//     // Prepare filename
+//     std::string filename = "benchmark_float64_" + std::to_string(num_columns) + "cols_" + 
+//                            std::to_string(num_row_groups) + "rowgroups.parquet";
+
+//     // Create or open the file
+//     std::shared_ptr<arrow::io::RandomAccessFile> file;
+//     try {
+//         file = OpenReadableFile(filename);
+//     } catch (const std::exception& e) {
+//         // If file doesn't exist, create it
+//         ParquetFlatbufferWriter writer(filename, num_columns, num_row_groups);
+//         writer.Write();
+//         file = OpenReadableFile(filename);
+//     }
+
+//     // Parse Thrift metadata
+//     std::shared_ptr<parquet::FileMetaData> thrift_metadata;
+//     try {
+//         thrift_metadata = parquet::ReadMetaData(file);
+//     } catch (const std::exception& e) {
+//         state.SkipWithError(("Failed to read Thrift metadata: " + std::string(e.what())).c_str());
+//         return;
+//     }
+
+//     // Create Flatbuffer representation
+//     flatbuffers::FlatBufferBuilder builder;
+//     ParquetFlatbufferWriter writer(filename, num_columns, num_row_groups);
+//     auto flatbuffer_metadata = writer.ConvertToFlatbuffer(thrift_metadata, builder);
+//     builder.Finish(flatbuffer_metadata);
+//     auto fmd = parquet2::GetFileMetaData(builder.GetBufferPointer());
+
+//     // Prepare random access indices
+//     std::vector<int> column_indices(num_columns);
+//     std::vector<int> row_group_indices(num_row_groups);
+//     std::iota(column_indices.begin(), column_indices.end(), 0);
+//     std::iota(row_group_indices.begin(), row_group_indices.end(), 0);
+//     std::random_device rd;
+//     std::mt19937 g(rd());
+
+//     if (random_access) {
+//         std::shuffle(column_indices.begin(), column_indices.end(), g);
+//         std::shuffle(row_group_indices.begin(), row_group_indices.end(), g);
+//     }
+
+//     for (auto _ : state) {
+//         // Thrift partial read
+//         auto start_thrift = std::chrono::high_resolution_clock::now();
+//         for (int i = 0; i < subset_size && i < num_columns; ++i) {
+//             int col_idx = random_access ? column_indices[i] : i;
+//             benchmark::DoNotOptimize(thrift_metadata->schema()->Column(col_idx)->name());
+//         }
+//         for (int i = 0; i < subset_size && i < num_row_groups; ++i) {
+//             int rg_idx = random_access ? row_group_indices[i] : i;
+//             benchmark::DoNotOptimize(thrift_metadata->RowGroup(rg_idx)->num_rows());
+//         }
+//         auto end_thrift = std::chrono::high_resolution_clock::now();
+
+//         // Flatbuffer partial read
+//         auto start_flatbuffer = std::chrono::high_resolution_clock::now();
+//         for (int i = 0; i < subset_size && i < num_columns; ++i) {
+//             int col_idx = random_access ? column_indices[i] : i;
+//             benchmark::DoNotOptimize(fmd->schema()->Get(col_idx)->name()->str());
+//         }
+//         for (int i = 0; i < subset_size && i < num_row_groups; ++i) {
+//             int rg_idx = random_access ? row_group_indices[i] : i;
+//             benchmark::DoNotOptimize(fmd->row_groups()->Get(rg_idx)->num_rows());
+//         }
+//         auto end_flatbuffer = std::chrono::high_resolution_clock::now();
+
+//         // Calculate durations
+//         auto thrift_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_thrift - start_thrift);
+//         auto flatbuffer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_flatbuffer - start_flatbuffer);
+
+//         // Record times
+//         state.counters["ThriftTime"] = benchmark::Counter(thrift_duration.count(), benchmark::Counter::kAvgThreads);
+//         state.counters["FlatBufferTime"] = benchmark::Counter(flatbuffer_duration.count(), benchmark::Counter::kAvgThreads);
+//     }
+
+//     // Record metadata sizes
+//     state.counters["ThriftMetadataSize"] = thrift_metadata->size();
+//     state.counters["FlatBufferSize"] = builder.GetSize();
+
+//     // Record test parameters
+//     state.counters["NumColumns"] = num_columns;
+//     state.counters["NumRowGroups"] = num_row_groups;
+//     state.counters["SubsetSize"] = subset_size;
+//     state.counters["RandomAccess"] = random_access ? 1 : 0;
+// }
+
+// // Register the benchmark
+// BENCHMARK(BM_ReadPartialData)
+//     ->Args({1000, 100, 10, 0})   // 1000 columns, 100 row groups, read 10, sequential
+//     ->Args({1000, 100, 10, 1})   // 1000 columns, 100 row groups, read 10, random
+//     ->Args({1000, 100, 100, 0})  // 1000 columns, 100 row groups, read 100, sequential
+//     ->Args({1000, 100, 100, 1})  // 1000 columns, 100 row groups, read 100, random
+//     ->Args({5000, 500, 10, 0})   // 5000 columns, 500 row groups, read 10, sequential
+//     ->Args({5000, 500, 10, 1})   // 5000 columns, 500 row groups, read 10, random
+//     ->Args({5000, 500, 100, 0})  // 5000 columns, 500 row groups, read 100, sequential
+//     ->Args({5000, 500, 100, 1})  // 5000 columns, 500 row groups, read 100, random
+//     ->Unit(benchmark::kNanosecond);
 
 void WriteResultsToCSV(const std::string& filename) {
     std::ofstream file(filename);
